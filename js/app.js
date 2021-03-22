@@ -1,7 +1,12 @@
 
 const resultado = document.querySelector('#resultado');
 const formulario = document.querySelector('#formulario');
+const paginacion = document.querySelector('#paginacion');
 
+const registrosPorPagina = 40;
+let totalPaginas;
+let iterador;
+let paginaActual = 1;
 
 window.onload = () => {
     formulario.addEventListener('submit', validarFormulario);
@@ -11,7 +16,6 @@ window.onload = () => {
 function validarFormulario(e){
 
     e.preventDefault();
-    const termino = document.querySelector('#termino').value;
 
     if(termino === ''){
         mostrarAlerta('debes ingresar algo');
@@ -19,7 +23,7 @@ function validarFormulario(e){
     }
 
     //pasa la validacion
-    buscarImagenes(termino);
+    buscarImagenes();
 
 }
 
@@ -45,17 +49,29 @@ function mostrarAlerta(mensaje){
 
 }
 
-function buscarImagenes(termino){
+function buscarImagenes(){
+
+    const termino = document.querySelector('#termino').value;
 
     const key = '20796340-393e3765d24ca4e9b62c58f51';
-    const url =`https://pixabay.com/api/?key=${key}&q=${termino}`;
+    const url =`https://pixabay.com/api/?key=${key}&q=${termino}&per_page=${registrosPorPagina}&page=${paginaActual}`;
 
     fetch(url)
         .then( respuesta => respuesta.json())
         .then( resultado => {
+            totalPaginas = calcularPaginas(resultado.totalHits);
+            console.log(totalPaginas);
             mostrarImagenes(resultado.hits)
         });
 
+}
+
+//generador que va a registrar la cantidad de elementos de acuerdo a las paginas 
+
+function * crearPaginador(total){
+    for(let i = 1; i <= total; i++){
+        yield i;        //registrar valor en el generador
+    }
 }
 
 
@@ -89,9 +105,50 @@ function mostrarImagenes(imagen){
         
         `
 
-        
-
-
     });
 
+    limpiarPaginador();
+
+    imprimirPaginador();    
+
+}
+
+function imprimirPaginador(){
+    iterador = crearPaginador(totalPaginas);
+    
+    while(true){
+        const {value,done} = iterador.next();
+        if(done){
+            return;
+        }
+
+        //genera un boton por cada elemento en el generador
+
+        const boton = document.createElement('A');
+        boton.href = '#';
+        boton.dataset.pagina = value;
+        boton.textContent = value;
+        boton.classList.add('siguiente','bg-yellow-400','px-4','py-1','mr-2','font-bold','mb-10','uppercase','rounded');
+
+        boton.onclick= () =>{
+            paginaActual = value;
+            buscarImagenes();
+        }
+
+        paginacion.appendChild(boton);
+
+    }
+}
+
+
+function calcularPaginas(total){
+    return parseInt(Math.ceil(total/registrosPorPagina)); //devuevle un entero de el resto de esta cuenta redondeando para arriba
+}
+
+
+function limpiarPaginador(){
+    
+    while(paginacion.firstChild){
+        paginacion.removeChild(paginacion.firstChild);
+    }
 }
